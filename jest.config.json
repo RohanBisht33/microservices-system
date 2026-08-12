@@ -1,0 +1,23 @@
+{
+  "preset": "ts-jest",
+  "testEnvironment": "node",
+  "moduleNameMapper": {
+    "^@microservices/events$": "<rootDir>/packages/events/src/index.ts",
+    "^(\\.{1,2}/.*)\\.js$": "$1"
+  },
+  "transform": {
+    "^.+\\.tsx?$": [
+      "ts-jest",
+      {
+        "useESM": true,
+        "tsconfig": {
+          "esModuleInterop": true,
+          "allowSyntheticDefaultImports": true
+        }
+      }
+    ]
+  },
+  "extensionsToTreatAsEsm": [".ts"],
+  "testMatch": ["**/*.test.ts"],
+  "verbose": true
+}

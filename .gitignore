@@ -1,0 +1,24 @@
+node_modules/
+dist/
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# NATS certs
+nats/certs/*.crt
+nats/certs/*.key
+nats/certs/*.srl
+
+# Database
+*.db
+*.sqlite
+
+# Testing & Coverage
+coverage/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
