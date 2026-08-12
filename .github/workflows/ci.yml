@@ -1,0 +1,42 @@
+name: CI & Production Deployment Readiness
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-build:
+    name: Build & Test Microservices
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Workspace Dependencies
+        run: npm ci
+
+      - name: Build All Monorepo Packages
+        run: npm run build
+
+      - name: Run Monorepo Test Suites
+        run: npm test
+
+      - name: Generate Dev TLS Certificates
+        run: npm run gen-certs
+
+      - name: Test Docker Compose Production Stack
+        run: |
+          cp .env.example .env
+          docker compose up --build -d
+          sleep 10
+          docker compose ps
+          curl --fail http://localhost:3000/health || exit 1
