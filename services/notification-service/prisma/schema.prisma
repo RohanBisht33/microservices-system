@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Notification {
+  id            String   @id @default(uuid())
+  userId        String
+  type          String   // "welcome", "password_reset", "account_updated", "account_deleted"
+  channel       String   // "email"
+  status        String   // "sent", "failed"
+  correlationId String
+  eventId       String
+  createdAt     DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model ProcessedEvent {
+  id          String   @id @default(uuid())
+  eventId     String   @unique
+  processedAt DateTime @default(now())
+
+  @@map("processed_events")
+}
