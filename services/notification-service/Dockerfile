@@ -11,7 +11,7 @@ COPY packages/events/package*.json ./packages/events/
 COPY services/notification-service/package*.json ./services/notification-service/
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY packages/events/ ./packages/events/

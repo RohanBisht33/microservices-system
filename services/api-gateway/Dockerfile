@@ -8,7 +8,7 @@ COPY package*.json tsconfig.base.json ./
 COPY services/api-gateway/package*.json ./services/api-gateway/
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy gateway source code
 COPY services/api-gateway/ ./services/api-gateway/
