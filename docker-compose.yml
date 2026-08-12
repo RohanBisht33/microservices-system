@@ -1,0 +1,124 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: microservices-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: microservices-nats
+    command: ["-c", "/etc/nats/nats-server.conf"]
+    environment:
+      NATS_AUTH_TOKEN: ${NATS_AUTH_TOKEN:-dev_nats_token_sec_123}
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
+      - ./nats/certs:/etc/nats/certs:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/varz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+    container_name: microservices-user-service
+    environment:
+      PORT: ${USER_SERVICE_PORT:-4001}
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_dev_password}@postgres:5432/${USER_DB_NAME:-user_service_db}?schema=public
+      NATS_URL: nats://nats:4222
+      NATS_AUTH_TOKEN: ${NATS_AUTH_TOKEN:-dev_nats_token_sec_123}
+      NATS_TLS_CA_PATH: /etc/nats/certs/ca.crt
+      JWT_SECRET: ${JWT_SECRET:-super_secret_jwt_key_change_in_production_12345}
+      JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION:-15m}
+      JWT_REFRESH_EXPIRATION_DAYS: ${JWT_REFRESH_EXPIRATION_DAYS:-7}
+    volumes:
+      - ./nats/certs:/etc/nats/certs:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:4001/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: microservices-notification-service
+    environment:
+      PORT: ${NOTIFICATION_SERVICE_PORT:-4002}
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_dev_password}@postgres:5432/${NOTIFICATION_DB_NAME:-notification_service_db}?schema=public
+      NATS_URL: nats://nats:4222
+      NATS_AUTH_TOKEN: ${NATS_AUTH_TOKEN:-dev_nats_token_sec_123}
+      NATS_TLS_CA_PATH: /etc/nats/certs/ca.crt
+      JWT_SECRET: ${JWT_SECRET:-super_secret_jwt_key_change_in_production_12345}
+      NOTIFICATION_PROVIDER: ${NOTIFICATION_PROVIDER:-console}
+      SMTP_HOST: ${SMTP_HOST:-smtp.example.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-user@example.com}
+      SMTP_PASS: ${SMTP_PASS:-password}
+    volumes:
+      - ./nats/certs:/etc/nats/certs:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:4002/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: microservices-api-gateway
+    environment:
+      PORT: ${GATEWAY_PORT:-3000}
+      NODE_ENV: production
+      USER_SERVICE_URL: http://user-service:4001
+      NOTIFICATION_SERVICE_URL: http://notification-service:4002
+      JWT_SECRET: ${JWT_SECRET:-super_secret_jwt_key_change_in_production_12345}
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    depends_on:
+      user-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  postgres_data:
