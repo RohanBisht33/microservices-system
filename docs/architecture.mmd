@@ -1,0 +1,26 @@
+graph TD
+    Client[Client Browser / Mobile] -->|REST HTTP / Port 3000| Gateway[API Gateway]
+    
+    subgraph Edge Layer
+        Gateway
+    end
+    
+    subgraph Internal Services
+        UserService[User Service - Port 4001]
+        NotifService[Notification Service - Port 4002]
+    end
+
+    subgraph Data & Messaging Infrastructure
+        Postgres[(PostgreSQL Database)]
+        NATS[NATS JetStream - TLS & Auth]
+    end
+
+    Gateway -->|REST / JWT Verification| UserService
+    Gateway -->|REST / JWT Verification| NotifService
+    
+    UserService -->|Prisma ORM| Postgres
+    NotifService -->|Prisma ORM| Postgres
+
+    UserService -->|Publish user.events.*| NATS
+    NATS -->|Durable Consumer| NotifService
+    NotifService -->|Publish DLQ on failure| NATS
