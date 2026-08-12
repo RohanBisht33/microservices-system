@@ -22,7 +22,11 @@ export function createApp(httpClient?: ServiceHttpClient) {
   const app = express();
   const client = httpClient || new ServiceHttpClient();
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+    })
+  );
   app.use(cors());
   app.use(express.json());
   app.use(correlationIdMiddleware);
