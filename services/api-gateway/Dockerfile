@@ -26,11 +26,10 @@ ENV NODE_ENV=production
 
 COPY package*.json ./
 COPY services/api-gateway/package*.json ./services/api-gateway/
-
-RUN npm ci --only=production
-
-COPY --from=builder /app/services/api-gateway/dist ./services/api-gateway/dist
 COPY docs/api/openapi.yaml ./docs/api/openapi.yaml
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/services/api-gateway/dist ./services/api-gateway/dist
 
 WORKDIR /app/services/api-gateway
 

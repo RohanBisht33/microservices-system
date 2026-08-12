@@ -34,15 +34,12 @@ ENV NODE_ENV=production
 
 COPY package*.json ./
 COPY packages/events/package*.json ./packages/events/
-COPY --from=builder /app/packages/events/dist ./packages/events/dist
 COPY services/notification-service/package*.json ./services/notification-service/
 COPY services/notification-service/prisma ./services/notification-service/prisma
 
-RUN npm ci --only=production
-
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages/events/dist ./packages/events/dist
 COPY --from=builder /app/services/notification-service/dist ./services/notification-service/dist
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 WORKDIR /app/services/notification-service
 
