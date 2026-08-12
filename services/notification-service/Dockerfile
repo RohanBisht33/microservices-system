@@ -34,7 +34,7 @@ ENV NODE_ENV=production
 
 COPY package*.json ./
 COPY packages/events/package*.json ./packages/events/
-COPY packages/events/dist ./packages/events/dist
+COPY --from=builder /app/packages/events/dist ./packages/events/dist
 COPY services/notification-service/package*.json ./services/notification-service/
 COPY services/notification-service/prisma ./services/notification-service/prisma
 
